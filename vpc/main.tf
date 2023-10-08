@@ -37,11 +37,11 @@ locals {
     key => element(data.aws_availability_zones.this.names, value.index)
   }
 
-  is_private_cidr_list_empty = length(var.subnet_cidr_blocks["private"]) == 0
-  is_public_cidr_list_empty  = length(var.subnet_cidr_blocks["public"]) == 0
+  #
+  one_or_more_private_subnets = length(var.subnet_cidr_blocks["private"]) >= 1
+  one_or_more_public_subnets  = length(var.subnet_cidr_blocks["public"]) >= 1
   nat_requirements_met = (
-    local.is_private_cidr_list_empty == false &&
-    local.is_public_cidr_list_empty == false
+    local.one_or_more_private_subnets && local.one_or_more_public_subnets
   )
 }
 
@@ -152,7 +152,7 @@ resource "aws_route_table_association" "private" {
 # (S3 in this case) without requiring access over the internet.
 # This VPC Endpoint is only created if private subnets are present.
 resource "aws_vpc_endpoint" "this" {
-  count        = local.is_private_cidr_list_empty ? 0 : 1
+  count        = local.one_or_more_private_subnets ? 1 : 0
   service_name = format("com.amazonaws.%s.s3", var.aws_region)
   vpc_id       = aws_vpc.this.id
 
@@ -199,7 +199,7 @@ resource "aws_subnet" "public" {
 # while preventing the internet from initiating a connection with those
 # same instances.
 resource "aws_internet_gateway" "this" {
-  count  = local.is_public_cidr_list_empty ? 0 : 1
+  count  = local.one_or_more_public_subnets ? 1 : 0
   vpc_id = aws_vpc.this.id
 
   tags = {
@@ -212,7 +212,7 @@ resource "aws_internet_gateway" "this" {
 # each route table will include a route that directs all outbound traffic to
 # this internet gateway.
 resource "aws_route_table" "public" {
-  count  = local.is_public_cidr_list_empty ? 0 : 1
+  count  = local.one_or_more_public_subnets ? 1 : 0
   vpc_id = aws_vpc.this.id
 
   route {
