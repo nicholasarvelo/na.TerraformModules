@@ -1,15 +1,11 @@
 # VPC Module
 
-----
-
 This module automates the process of setting up network infrastructure on
 AWS. It creates a new VPC and institutes private and public subnets as needed.
 For each subnet, it builds a corresponding route table. It deploys an internet
 gateway if there's at least one public subnet. For any private subnet, it sets
 up an S3 endpoint. And if there's at least one private and one public subnet,
 it creates a NAT gateway.
-
----
 
 ## Usage
 
